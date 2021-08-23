@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style type="text/css">
+.line {
+    fill: none;
+    stroke-width: 3;
+}
+
+.serie_label {
+    fill: #2b2929;
+    font-size: 95%;
+}
+.rank_label {
+    fill: #ffffff;
+    font-size: 80%;
+}
+@media print {
+  .pagebreak {
+     page-break-before: always;
+  }
+}
+</style>
+
+<script src="../lib/d3.v5.min.js"></script>
+<script>
+
+  width = window.innerWidth - 560;
+  height = window.innerHeight - 120;
+
+var timeConv = d3.timeParse("%Y-%m-%d");
+
+d3.dsv(",", "boardgame_ratings.csv").then(function(data) {
+    var slices = data.columns.slice(1).map(function(id) {
+        return {
+            id: id,
+            values: data.map(function(d){
+                return {
+                    date: timeConv(d.date),
+                    measurement: +d[id]
+                };
+            })
+        };
+    });
+
+    var xScale = d3.scaleTime().range([0, width]);
+    var yScale = d3.scaleLinear().range([height, 0]);
+    xScale.domain(d3.extent(data, function(d){ return timeConv(d.date)}));
+
+    yScale.domain([(0), d3.max(slices, function(c) {
+        return d3.max(c.values, function(d) {
+            return d.measurement; });
+            })
+        ]);
+    var columns = data.columns.slice(1);
+
+    function dateSetter(datapoint) {
+      return xScale(timeConv(datapoint.date));
+    }
+
+    function yVal(datapoint, indexer) {
+      return yScale(datapoint[columns[indexer]]);
+    }
+
+    vrLines = [];
+
+    var l0 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,0); })
+    vrLines.push(l0)
+    var l1 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,2); })
+    vrLines.push(l1)
+    var l2 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,4); })
+    vrLines.push(l2)
+    var l3 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,6); })
+    vrLines.push(l3)
+    var l4 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,8); })
+    vrLines.push(l4)
+    var l5 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,10); })
+    vrLines.push(l5)
+    var l6 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,12); })
+    vrLines.push(l6)
+    var l7 = d3.line()
+            .x(function(d) { return dateSetter(d) })
+            .y(function(d) { return yVal(d,14); })
+    vrLines.push(l7)
+
+    console.log(vrLines)
+    countCols = [];
+    for(var i = 0; i <= 14; i+=2){
+      countCols.push(columns[i]);
+    }
+    colorsList = ["#4e79a7","#f28e2c","#e15759","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"];
+    subsetVals = [l0,l2,l3,l4];
+    subColList = [columns[0], columns[4], columns[6], columns[8]]
+    subColors = [colorsList[0],colorsList[2],colorsList[3],colorsList[4]];
+
+
+    subsetsec = [columns[1], columns[5], columns[7], columns[9]]
+    var svg = d3.select("body").append("svg")
+        .attr("width", width + 560)
+        .attr("height", height + 600)
+        .append("g")
+        .attr("transform", "translate(" + 280 + "," + 300 + ")");
+
+
+    for (var i = 0; i < 8; i++) {
+
+        svg.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr("d", vrLines[i]);
+
+        svg.append("text")
+            .attr("class","serie_label")
+            .datum(data)
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr('font-family', 'Segoe UI light')
+            .attr("transform", function(d) {
+                return "translate(" + (xScale(timeConv(d[data.length-1]["date"])) + 10)
+                + "," + (yScale(d[data.length-1][countCols[i]]) + 5 ) + ")";})
+            .attr("x", 5)
+            .text( countCols[i].replace("=count",""));
+    }
+
+
+    svg.append("g")
+        .attr("transform","translate(0,30)")
+        .append("text")
+        .attr("x",width/2)
+        .attr("y",-100)
+        .attr('font-weight', 'bold')
+        .attr('font-size', '60px')
+        .attr('font-family', 'Segoe UI bold')
+        .style("text-anchor", "middle")
+        .text("Number of Ratings 2016-2020")
+
+    var yaxis = d3.axisLeft().scale(yScale).ticks(10);
+
+    var xaxis = d3.axisBottom().scale(xScale)
+        .ticks(d3.timeMonth.every(3))
+        .tickFormat(d3.timeFormat('%b %y'));
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")").call(xaxis)
+
+    svg.append("g")
+        .attr("class", "y axis").call(yaxis)
+
+    svg.append("text")
+        .attr("transform", "translate(" + (width/2) + " ," + (height  + 70) + ")")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Month");
+
+    svg.append("text")
+        .attr("y", -100)
+        .attr("x",0 - (height / 2))
+        .attr("transform", "rotate(-90)")
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Num of Ratings");
+
+    d3.select('body').append('g')
+        .attr('class','pagebreak');
+
+
+///////////////////////////////////////
+///////////// SVG Part B //////////////
+///////////////////////////////////////
+
+
+    var svgB = d3.select("body").append("svg")
+        .attr("width", width + 560)
+        .attr("height", height + 600).append("g")
+        .attr("transform", "translate(" + 280 + "," + 300 + ")");
+
+    for (var i = 0; i < 8; i++) {
+        svgB.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr("d", vrLines[i]);
+
+        svgB.append("text")
+            .attr("class","serie_label")
+            .datum(data)
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr('font-family', 'Segoe UI light')
+            .attr("transform", function(d) {
+                return "translate(" + (xScale(timeConv(d[data.length-1]["date"])) + 10)
+                + "," + (yScale(d[data.length-1][countCols[i]]) + 5 ) + ")";})
+            .attr("x", 5)
+            .text( countCols[i].replace("=count",""));
+    }
+
+    var secSet = [data[2], data[5], data[8], data[11], data[14], data[17], data[20], data[23], data[26], data[29], data[32], data[35], data[38], data[41], data[44]]
+
+    for (var i = 0; i < 4; i++) {
+
+        svgB.append("g").selectAll(".dot")
+            .data(secSet)
+            .enter().append("circle")
+            .style("fill", function(d) { return subColors[i]; })
+            .attr("cx", function(d) { return xScale(timeConv(d.date)); })
+            .attr("cy", function(d) { if (d[countCols[i]] != 0) { return yScale(d[subColList[i]]); } else { return yScale(1); }})
+            .attr("r", 20);
+
+        for (var k=0; k<secSet.length; k++) {
+            svgB.append("text")
+                .attr("class","rank_label")
+                .datum(secSet[k])
+                .attr("transform", function(d) {
+                    return "translate(" + (xScale(timeConv(d.date)))
+                    + "," + (yScale(d[subColList[i]])+3) + ")";})
+                .style("text-anchor", "middle")
+                .text(function(d) {return d[subsetsec[i]]});
+        }
+
+    }
+    var dotLeg = svgB.selectAll(".legend")
+        .data([{name: "Rank", col: "white"}])
+        .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i) { return "translate(" + (width + 80) + "," + (height-40) + ")"; })
+    dotLeg.append("text")
+        .attr("y", 50)
+        .attr("stroke", "black")
+        .attr('font-size', '8px')
+        .style("text-anchor", "middle")
+        .text("BoardGameGeek Rank");
+
+    dotLeg.append("circle")
+        .attr("r", 20)
+        .style("fill", "black");
+
+    dotLeg.append("text")
+        .attr("y", 3)
+        .attr("stroke", "white")
+        .attr('font-size', '8px')
+        .style("text-anchor", "middle")
+        .text("Rank");
+
+    svgB.append("g")
+        .attr("transform","translate(0,30)")
+        .append("text")
+        .attr("x",width/2)
+        .attr("y",-100)
+        .attr('font-weight', 'bold')
+        .attr('font-size', '60px')
+        .style("text-anchor", "middle")
+        .text("Number of Ratings 2016-2020 with Rankings")
+
+    svgB.append("g")
+        .attr("class", "y axis")
+        .call(yaxis)
+
+    svgB.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x",0 - (height / 2))
+        .attr("y", -100)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Num of Ratings");
+
+    svgB.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xaxis)
+
+    svgB.append("text")
+        .attr("transform",
+                "translate(" + (width/2) + " ," +
+                            (height  + 70) + ")")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Month");
+
+    d3.select('body').append('g').attr('class','pagebreak');
+
+var yScale = d3.scaleSqrt().range([height, 0]);
+
+yScale.domain([(0), d3.max(slices, function(c) {
+    return d3.max(c.values, function(d) {
+        return d.measurement; });
+        })
+    ]);
+
+var yaxis = d3.axisLeft().ticks(10).scale(yScale);
+
+///////////////////////////////////////
+//////////// SVG Part C1 //////////////
+///////////////////////////////////////
+
+
+var svgC = d3.select("body").append("svg")
+    .attr("width", width + 560)
+    .attr("height", height + 600)
+    .append("g")
+    .attr("transform", "translate(" + 280 + "," + 300 + ")");
+
+    for (var i = 0; i < 8; i++) {
+        svgC.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr("d", vrLines[i]);
+
+        svgC.append("text")
+            .attr("class","serie_label")
+            .datum(data)
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr('font-family', 'Segoe UI light')
+            .attr("transform", function(d) {
+                return "translate(" + (xScale(timeConv(d[data.length-1]["date"])) + 10) + "," + (yScale(d[data.length-1][countCols[i]]) + 5 ) + ")";})
+            .attr("x", 5)
+            .text( countCols[i].replace("=count",""));
+    }
+
+    for (var i = 0; i < 4; i++) {
+        svgC.append("g").selectAll(".dot")
+            .data(secSet)
+            .enter().append("circle")
+            .style("fill", function(d) { return subColors[i]; })
+            .attr("cx", function(d) { return xScale(timeConv(d.date)); })
+            .attr("cy", function(d) { if (d[subColList[i]] != 0) { return yScale(d[subColList[i]]); } else { return yScale(1); }})
+            .attr("r", 20);
+
+        for (var k=0; k<secSet.length; k++) {
+            svgC.append("text")
+                .attr("class","rank_label")
+                .datum(secSet[k])
+                .attr("transform", function(d) {
+                    return "translate(" + (xScale(timeConv(d.date))) + "," + (yScale(d[subColList[i]])+3) + ")";})
+                .style("text-anchor", "middle")
+                .text(function(d) {return d[subsetsec[i]]});
+        }
+
+    }
+
+    svgC.append("g")
+        .attr("transform","translate(0,30)")
+        .append("text")
+        .attr("x",width/2)
+        .attr("y",-100)
+        .attr('font-weight', 'bold')
+        .attr('font-size', '50px')
+        .attr('font-family', 'Segoe UI bold')
+        .style("text-anchor", "middle")
+        .text("Number of Ratings 2016-2020 (Square-Root Scale)")
+
+    svgC.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xaxis)
+
+    svgC.append("text")
+        .attr("transform",
+                "translate(" + (width/2) + " ," + (height  + 70) + ")")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Month");
+
+    svgC.append("g")
+        .attr("class", "y axis")
+        .call(yaxis)
+
+    svgC.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x",0 - (height / 2))
+        .attr("y", -100)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Num of Ratings");
+
+    var dotLeg = svgC.selectAll(".legend")
+        .data([{name: "Rank", col: "white"}])
+        .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i) { return "translate(" + (width + 80) + "," + (height-40) + ")"; })
+
+    dotLeg.append("circle")
+        .attr("r", 20)
+        .style("fill", "black");
+
+    dotLeg.append("text")
+        .attr("y", 3)
+        .attr("stroke", "white")
+        .attr('font-size', '8px')
+        .style("text-anchor", "middle")
+        .attr('font-family', 'Segoe UI light')
+        .text("Rank");
+
+    dotLeg.append("text")
+        .attr("y", 50)
+        .attr("stroke", "black")
+        .attr('font-size', '8px')
+        .style("text-anchor", "middle")
+        .attr('font-family', 'Segoe UI light')
+        .text("BoardGameGeek Rank");
+
+    d3.select('body').append('g')
+    .attr('class','pagebreak');
+
+
+var yScale = d3.scaleLog().range([height, 0]).domain([1e-6, 1e+10]);
+var yaxis = d3.axisLeft().ticks(10).scale(yScale);
+
+ ////////////////////////////
+ ////// SVG Part C2 /////////
+ ////////////////////////////
+
+
+var svgC2 = d3.select("body").append("svg")
+    .attr("width", width + 560)
+    .attr("height", height + 600).append("g")
+    .attr("transform", "translate(" + 280 + "," + 300 + ")");
+
+
+    for (var i = 0; i < 8; i++) {
+        svgC2.append("path")
+            .datum(data)
+            .attr("class", "line")
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr("d", vrLines[i]);
+
+        svgC2.append("text")
+            .attr("class","serie_label")
+            .datum(data)
+            .style("stroke", function(d) { return colorsList[i]; })
+            .attr('font-family', 'Segoe UI light')
+            .attr("transform", function(d) {
+                return "translate(" + (xScale(timeConv(d[data.length-1]["date"])) + 10)
+                + "," + (yScale(d[data.length-1][countCols[i]]) + 5 ) + ")";})
+            .attr("x", 5)
+            .text( countCols[i].replace("=count",""));
+
+    }
+    for (var i = 0; i < 4; i++) {
+
+        svgC2.append("g").selectAll(".dot")
+            .data(secSet)
+            .enter().append("circle")
+            .style("fill", function(d) { return subColors[i]; })
+            .attr("cx", function(d) { return xScale(timeConv(d.date)); })
+            .attr("cy", function(d) { if (d[subColList[i]] != 0) { return yScale(d[subColList[i]]); } else { return yScale(1); }})
+            .attr("r", 20);
+
+        function ranked(valin, sec) {
+          return valin[subsetsec[sec]];
+        }
+
+        for (var k=0; k<secSet.length; k++) {
+            svgC2.append("text")
+                .attr("class","rank_label")
+                .datum(secSet[k])
+                .attr("transform", function(d) {
+                    return "translate(" + (xScale(timeConv(d.date))) + "," + (yScale(d[subColList[i]])+3) + ")";})
+                .style("text-anchor", "middle")
+                .text(function(d) {return d[subsetsec[i]]});
+        }
+    }
+
+    svgC2.append("g")
+        .attr("transform","translate(0,30)")
+        .append("text")
+        .attr("x",width/2)
+        .attr("y",-100)
+        .attr('font-weight', 'bold')
+        .attr('font-size', '50px')
+        .attr('font-family', 'Segoe UI bold')
+        .style("text-anchor", "middle")
+        .text("Number of Ratings 2016-2020 (Log Scale)")
+
+    svgC2.append("text")
+        .attr("transform", "translate(" + (width+50) + " ," + (height  + 50) + ")")
+        .style("text-anchor", "middle")
+        .attr('font-size', '20px').text("slad8")
+
+    svgC2.append("g")
+        .attr("class", "y axis")
+        .call(yaxis)
+
+    svgC2.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x",0 - (height / 2))
+        .attr("y", -100)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Num of Ratings");
+
+    svgC2.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xaxis)
+
+    svgC2.append("text")
+        .attr("transform", "translate(" + (width/2) + " ," + (height  + 70) + ")")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '30px')
+        .text("Month");
+
+    var dotLeg = svgC2.selectAll(".legend")
+        .data([{name: "Rank", col: "white"}])
+        .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function(d, i) { return "translate(" + (width + 80) + "," + (height-40) + ")"; })
+
+    dotLeg.append("circle")
+        .attr("r", 20)
+        .style("fill", "black");
+
+    dotLeg.append("text")
+        .attr("y", 50)
+        .attr("stroke", "black")
+        .attr('font-size', '8px')
+        .style("text-anchor", "middle")
+        .attr('font-family', 'Segoe UI light')
+        .text("BoardGameGeek Rank");
+
+    dotLeg.append("text")
+        .attr("y", 4)
+        .attr("stroke", "white")
+        .attr('font-size', '8px')
+        .style("text-anchor", "middle")
+        .attr('font-family', 'Segoe UI light')
+        .text("Rank");
+
+});
+</script>

@@ -1,0 +1,5 @@
+
+
+Nonlinear scales allow for the range of data to be compressed.
+So small values that would usually be hard to discern compared to much larger values
+(mainly outliers in the grand scheme), would be easier for a user to interpret and see.

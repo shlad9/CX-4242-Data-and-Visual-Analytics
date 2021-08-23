@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+	<!-- add title -->
+
+    <!-- import required libraries here -->
+    <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+    <script src="../lib/d3-geo-projection.v2.min.js"></script>
+    <script src="../lib/d3-tip.min.js"></script>
+    <script src="../lib/topojson.v2.min.js"></script>
+
+	<style>
+    .background {
+        fill: none;
+        pointer-events: all;
+    }
+
+    #countries .active {
+        display:none;
+    }
+
+    #country-borders {
+        fill: none;
+        stroke: rgb(100, 0, 0);
+        stroke-width: 1.0px;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+        pointer-events: none; }
+
+    path:hover {
+	    fill-opacity: 0.6;
+    }
+
+    .d3-tip {
+        line-height: 1;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fee;
+        border-radius: 10px;
+    }
+    h1 {
+        font-size: 50;
+        font-weight: bold;
+    }
+
+
+	</style>
+</head>
+
+
+<body>
+    <!-- dropdown -->
+
+    <!-- Add heading for the visualization -->
+    <h1>Average Rating of Board Games Across the World</h1>
+		<h4>Select Board Game:</h4>
+
+
+    <!-- Dropdown -->
+
+
+	<!-- append visualization svg to this div-->
+    <div id="choropleth"></div>
+
+    <select id="dropdown"></select>
+
+    <script>
+  	width = window.innerWidth - 40;
+    height = window.innerHeight - 40;
+
+		// enter code to create svg
+		var svg = d3.select("body")
+            .append("svg")
+            .attr('height', height + 50)
+            .attr('width', width + 50);
+
+        Promise.resolve(d3.json('world_countries.json'))
+        .then(ready);
+
+		// enter code to create color scale
+
+		// enter code to define tooltip
+
+		// enter code to define projection and path required for Choropleth
+				var partition = 14;
+				var projection = d3.geoMercator()
+            .translate([width /2 , height / 2])
+            .scale(width/partition)
+
+        var path = d3.geoPath()
+							.projection(projection);
+
+		// define any other global variables
+
+        function ready(country_json) {
+            d3.dsv(",", "ratings-by-country.csv", function (d) {
+                return{
+                    Game: d.Game,
+                    Country: d.Country,
+                    num_user: parseInt(d['Number of Users']),
+                    avg_rating: parseInt(d['Average Rating'])
+                }
+            }).then(function(data) {
+
+						var cStoragePass = {};
+            var countriesStorage = {};
+            var dropdown_options = [];
+
+						var unknown = undefined;
+						var baser = 0;
+						var boolea = true;
+
+            for (var r = 0; r < data.length; r++) {
+                d=data[r];
+                if (countriesStorage[d.Game] == unknown) {
+                    countriesStorage[d.Game] = {};
+                }
+                if (cStoragePass[d.Game] == unknown) {
+                    cStoragePass[d.Game] = {};
+                }
+                if(countriesStorage[d.Game][d.Country] == unknown) {
+                    countriesStorage[d.Game][d.Country] = baser;
+                }
+                if(cStoragePass[d.Game][d.Country] == unknown) {
+                    cStoragePass[d.Game][d.Country] = baser;
+                }
+                countriesStorage[d.Game][d.Country] = parseInt(d.avg_rating)
+                cStoragePass[d.Game][d.Country] = parseInt(d.num_user);
+
+                if(dropdown_options.includes(d.Game) != boolea) {
+                    dropdown_options.push(d.Game)
+                }
+            }
+
+						var baser = 0;
+            var selectedDataset = dropdown_options[baser]
+
+            var chosenOnes = [];
+            for (var p = 0; p < dropdown_options.length; p++) {
+                chosenOnes.push({"name": dropdown_options[p]})
+            }
+
+						function propertiesD (dataValn) {
+							return dataValn.properties.name;
+						}
+
+            tip = d3.tip().attr('class', 'd3-tip').html(function(d) {
+                return 'Game: ' + selectedDataset + '<br />' +
+                 'Country: ' + d.properties.name + '<br />' +
+                'Avg Rating: ' + countriesStorage[selectedDataset][d.properties.name] + '<br />' +
+                'Number of Users: ' + cStoragePass[selectedDataset][d.properties.name]; });
+
+            svg.call(tip);
+
+            var colorgradient = d3.scaleQuantile().domain([d3.min(d3.values(countriesStorage[selectedDataset])),
+						d3.max(d3.values(countriesStorage[selectedDataset]))]).range(['#E98B6D', '#F46B6B', '#FE6A8D', '#FA72FF'])
+
+						function nameSend(point) {
+							return point.name;
+						}
+
+            d3.select("#dropdown")
+                .selectAll("new")
+                .data(chosenOnes)
+                .enter()
+                .append("option")
+                .attr("value",function(d) { return nameSend(d)})
+                .text(function(d) { return nameSend(d)});
+
+						function features(pointer) {
+							return pointer.features;
+						}
+
+            svg.append("g")
+                .attr("id", "states")
+                .selectAll("path")
+                .data(features(country_json))
+                .enter().append("path")
+                .attr("d", (feature) => path(feature))
+                .attr("class", "country")
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide)
+                .style('fill', function(d) {
+                    if (countriesStorage[selectedDataset][d.properties.name] == undefined) { return "#FFD1FF";
+                    }
+                    return colorgradient(countriesStorage[selectedDataset][d.properties.name])
+                });
+
+						function borders(interc) {
+							return interc.properties.name.value
+						}
+
+            svg.append("path")
+                .datum(country_json, function(won, ton) { return won !== ton; })
+                .attr("id", "country-borders")
+                .attr("d", path)
+
+            d3.select("#dropdown").on("change", function(d){
+                    var selectedDataset = this.value;
+                    svg.selectAll().remove();
+
+                    svg.append("g")
+                    .attr("id", "states")
+                    .selectAll("path")
+                    .data(country_json.features)
+                    .enter().append("path")
+                    .attr("d", (feature) => path(feature))
+                    .attr('fill', "#FFD1FF")
+                    .attr("class", "country")
+										.on('mouseout', tip.hide)
+                    .on('mouseover', tip.show)
+                    .style('fill', function(d) {
+                        if (countriesStorage[selectedDataset][d.properties.name] == undefined) {return "#FFD1FF";}
+														var countryDset = countriesStorage[selectedDataset][d.properties.name]
+                        		return colorgradient(countryDset)
+
+                    });
+
+								svg.append("path")
+                    .datum(country_json, function(a, b) { return a !== b; })
+                    .attr("id", "country-borders")
+                    .attr("d", path)
+
+								svg.append("text")
+						        .attr("transform", "translate(" + (width-200) + " ," + (height + 10) + ")")
+						        .style("text-anchor", "middle")
+						        .attr('font-size', '20px')
+						        .text("slad8")
+                })
+
+								svg.append("text")
+						        .attr("transform", "translate(" + (width-200) + " ," + (height + 10) + ")")
+						        .style("text-anchor", "middle")
+						        .attr('font-size', '20px')
+						        .text("slad8")
+
+                }
+            )};
+
+    </script>
+</body>
+</html>

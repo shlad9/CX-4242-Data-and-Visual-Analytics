@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<head>
+  <title>Games Rating: 2015 - 2019</title>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+  <script type="text/javascript" src="../lib/d3-dsv.min.js"></script>
+</head>
+
+<style>
+  .bar { fill: green; }
+  .line {
+    fill: none;
+    stroke-width: 2;
+  }
+</style>
+
+<body>
+
+<div id="interactive"></div>
+
+<script>
+
+width = window.innerWidth - 560;
+height = window.innerHeight - 120;
+
+var xscale = d3.scaleLinear().range([0, width]).domain([0,9]);
+var yscale = d3.scaleLinear().range([height, 0]);
+
+var svg = d3.select("body").append("svg")
+        .attr("width", width + 400)
+        .attr("height", height + 400)
+        .append("g")
+        .attr("transform", "translate(" + 200 + "," + 200 + ")");
+
+d3.dsv(",", "average-rating.csv", function (d) {
+  return{
+    year: parseInt(d.year),
+    avg_rating: parseInt(Math.floor(d.average_rating)),
+    name: d.name,
+    users_rated: parseInt(d.users_rated)
+  }
+}).then(function (data) {
+  var dataset = d3.nest().key(function (d) {return d.year;}).key(function (d) {return d.avg_rating;})
+    .entries(data);
+
+
+  var storeLines = {};
+  var caplim = 0;
+
+  for(var i=0; i<dataset.length; i++) {
+    var counter = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+    for(var j=0; j<dataset[i].values.length; j++) {
+      try {
+        counter[(dataset[i].values[j]).key]=(parseInt(dataset[i].values[j].values.length))
+        if((parseInt(dataset[i].values[j].values.length)) > caplim) {
+          caplim = (parseInt(dataset[i].values[j].values.length))
+        }
+      } catch (TypeError) {
+        counter.push(0)
+      }
+    }
+    storeLines[dataset[i].key]= counter
+  }
+
+  var toDel = ["2020", "2014", "2013", "2011"]
+
+  for (var year in toDel) {
+      delete storeLines[year];
+  }
+
+    var dataset = []
+    for (var m = 0; m<10; m++) {
+      var tempstore = {}
+      var paramterst = d3.keys(storeLines)
+      for (var year in paramterst) {
+        var pasin = storeLines[d3.keys(storeLines)[year]][m]
+        tempstore[d3.keys(storeLines)[year]] = pasin
+      }
+      dataset.push(tempstore)
+    }
+
+  var lineData = []
+  bdic = {};
+
+  data.forEach(function(d) {
+        dataYear = d.year;
+        dataName = d.name;
+        userR = d.users_rated;
+        avgR = d.avg_rating;
+
+        if (bdic[d.avg_rating] == undefined) { bdic[avgR] = {};
+        } else if (bdic [avgR][dataYear] == undefined) {
+            bdic[avgR][dataYear] = [{name: "", users_rated: 0}];
+        } else { bdic[avgR][dataYear].push({name: dataName, users_rated: userR});
+        }
+    }
+  );
+
+  for (var rket in dataset) {
+        morn = {avg_rating: parseInt(rket)};
+        for (var yearKey in dataset[rket]) {
+            morn[yearKey] = dataset[rket][yearKey];
+        }
+        lineData.push(morn);
+    }
+
+  colorsList = ["#4e79a7","#f28e2c","#e15759","#76b7b2","#59a14f"];
+  columnsList = ['2015', '2016', '2017', '2018', '2019'];
+
+  function ratingPull(dataVal) {
+    return xscale(dataVal['avg_rating']);
+  }
+
+  function getYearlyV(dataVal, yearS) {
+    return yscale(dataVal[yearS])
+  }
+
+    graphLines = []
+    l0 = d3.line()
+        .x(function(d, i) { return ratingPull(d); })
+        .y(function(d) { return getYearlyV(d,"2015"); })
+    graphLines.push(l0)
+    l1 = d3.line()
+        .x(function(d, i) { return ratingPull(d); })
+        .y(function(d) { return getYearlyV(d,"2016"); })
+    graphLines.push(l1)
+    l2 = d3.line()
+        .x(function(d, i) { return ratingPull(d); })
+        .y(function(d) { return getYearlyV(d,"2017"); })
+    graphLines.push(l2)
+    l3 = d3.line()
+        .x(function(d, i) { return ratingPull(d); })
+        .y(function(d) { return getYearlyV(d,"2018"); })
+    graphLines.push(l3)
+    l4 = d3.line()
+        .x(function(d, i) { return ratingPull(d); })
+        .y(function(d) { return getYearlyV(d,"2019"); })
+    graphLines.push(l4)
+  yscale.domain([0,caplim]);
+
+  var xaxis = d3.axisBottom().scale(xscale).ticks(10);
+  svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")").call(xaxis)
+  svg.append("text")
+        .attr("transform", "translate(" + (width/2) + " ," + (height  + 75) + ")")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '35px')
+        .text("Rating");
+
+  var yaxis = d3.axisLeft().scale(yscale).ticks(10);
+  svg.append("g")
+        .attr("class", "y axis").call(yaxis)
+  svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x",0 - height/2)
+        .attr("y", -115)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .attr("font-weight", "bold")
+        .attr('font-size', '35px')
+        .text("Count");
+
+svg.append("g")
+        .attr("transform","translate(0,30)")
+        .append("text")
+        .attr("x",width/2)
+        .attr("y",-55)
+        .attr('font-size', '30px')
+        .style("text-anchor", "middle")
+        .style("fill", "green")
+        .text("slad8")
+
+svg.append("g")
+        .attr("transform","translate(0,30)")
+        .append("text")
+        .attr("x",width/2)
+        .attr("y",-110)
+        .attr('font-weight', 'bold')
+        .attr('font-size', '60px')
+        .style("text-anchor", "middle")
+        .text("Board Games by Rating 2015-2019")
+
+for (var i = 0; i < graphLines.length; i++) {
+    svg.append("path")
+        .datum(lineData)
+        .attr("class", "line")
+        .attr("d", graphLines[i])
+        .attr("transform", "translate(0,0)")
+        .style("stroke", function(d) { return colorsList[i]; });
+
+    svg.append("g").selectAll(".dot")
+        .data(lineData)
+        .enter().append("circle")
+        .attr("class", "dot")
+        .attr('id', i)
+        .attr("r", function(d) { return 5; })
+        .attr("cx", function(d, i) { return xscale(d.avg_rating); })
+        .attr("cy", function(d) { return yscale(d[columnsList[i]]); })
+        .attr("transform", "translate(0,0)")
+        .style("fill", function(d) { return colorsList[i]; })
+        .on("mouseover", function(a, b, c) {
+                console.log(d3.select(this).attr('id'));
+                replot(a.avg_rating, d3.select(this).attr('id'), graphsvg);
+                d3.select(this).attr('r',12); })
+        .on("mouseout", function() { graphsvg.selectAll("*").remove();
+                d3.select(this).attr('r',5); })}
+
+var graphKey = svg.selectAll(".legend")
+    .data([{name: "2015", col: colorsList[0]}, {name: "2016", col: colorsList[1]}, {name: "2017", col: colorsList[2]}, {name: "2018", col: colorsList[3]},
+        {name: "2019", col: colorsList[4]}])
+    .enter().append("g")
+    .attr("class", "legend")
+    .attr("transform", function(d, i) { return "translate(" + (width+15) + "," + (70 + (i * 20)) + ")"; })
+
+graphKey.append("text")
+    .attr("x", 24)
+    .attr("y",0)
+    .attr("dy", ".35em")
+    .text(function(d) { return d.name; });
+graphKey.append("circle")
+    .attr("r", 6)
+    .style("fill", function(d) { return d.col; });
+
+    var barW = width - 130;
+    var barM = null;
+    var barxVal = d3.scaleLinear().range([0, barW]);
+    var barydVal = d3.scaleLinear().range([10, barW]);
+
+    var paddingInc = 0.2
+
+    var barH = 0.85*height - 130;
+    var barM = null;
+    var baryVal = d3.scaleBand().range([barH , 0]).padding(paddingInc);
+    var barydVal = d3.scaleBand().range([barH , 0]).padding(6);
+
+
+    var graphsvg = d3.select("body").append("svg")
+        .attr("id", "barId")
+        .attr("width", barW + 200)
+        .attr("height", barH  + 200)
+        .attr("transform", "translate(" + 100 + "," + -100 + ")")
+        .append("g")
+        .attr("transform", "translate(" + 100 + "," + 50 + ")");
+
+
+    function replot(r, yvid, graphsvg) {
+        var year_new = null;
+        switch(parseInt(yvid)) {
+            case 0: year = 2015
+                break;
+            case 1: year = 2016
+                break;
+            case 2: year = 2017
+                break;
+            case 3: year = 2018
+                break;
+            case 4: year = 2019
+                break;};
+
+        var graphPlotting = bdic[r][year];
+        graphsvg.selectAll("*").remove();
+        graphPlotting.forEach(function(d) { d.users_rated = parseInt(d.users_rated);});
+        graphPlotting.sort(function(a, b) { return b.users_rated - a.users_rated;});
+
+        storage = []
+        for (var i = 0; i<5; i++) {
+          if (graphPlotting[i].users_rated != 0) { storage.push(graphPlotting[i])
+          } else { break }}
+        reversed = storage.reverse();
+        storage = reversed;
+
+        var tickVal = 10;
+
+        barxVal.domain([0, d3.max(reversed, function(d){ return d.users_rated; })])
+        baryVal.domain(reversed.map(function(d) { return d.name.slice(0,10); }));
+
+        graphsvg.selectAll(".bar")
+            .data(reversed)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("width", function(d) {return barxVal(d.users_rated); } )
+            .attr("y", function(d) { return baryVal(d.name.slice(0,10)); })
+            .attr("height", baryVal.bandwidth());
+
+        var xaxis = d3.axisBottom().scale(barxVal).ticks(tickVal);
+
+        graphsvg.append("g")
+              .attr("class", "x axis")
+              .attr("transform", "translate(0," + barH  + ")")
+              .call(xaxis)
+
+        graphsvg.append("text")
+              .attr("transform","translate(" + (700) + " ," + (barH + 50) + ")")
+              .style("text-anchor", "middle")
+              .attr("font-weight", "bold")
+              .attr('font-size', '20px')
+              .text("Number of Users");
+
+        var yaxis = d3.axisLeft().scale(baryVal);
+        graphsvg.append("g")
+              .attr("class", "y axis")
+              .call(yaxis)
+
+        graphsvg.append("text")
+              .attr("transform", "rotate(-90)")
+              .attr("y", - 140)
+              .attr("x",0 - (barH  / 2))
+              .attr("dy", "3em")
+              .style("text-anchor", "middle")
+              .attr("font-weight", "bold")
+              .attr('font-size', '22px')
+              .text("Games");
+
+        graphsvg.append("g")
+            .attr("transform","translate(0,30)")
+            .append("text")
+            .attr("x",barW/2 + tickVal)
+            .attr("y",-50)
+            .attr('font-weight', 'bold')
+            .attr('font-size', '40px')
+            .attr('font-family', 'Segoe UI bold')
+            .style("text-anchor", "middle")
+            .text("Top 5 Most Rated Games of " + year + " with Rating " + r);
+    }
+});
+
+</script>
+
+</body>
