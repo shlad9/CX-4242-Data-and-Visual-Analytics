@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<!-- run: http-server & -->
+
+<head>
+  <title>Running Total of TMDb Movies by Year</title>
+  <style>
+    <!-- define CSS rules -->
+    div.bar {
+      display: inline-block;
+      width: 20px;
+      height: 75px;
+      background-color: teal;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <script src="lib/d3/d3.min.js"></script>
+  <script src="lib/d3-dsv/d3-dsv.min.js"></script>
+  <script src="lib/d3-fetch/d3-fetch.min.js"></script>
+
+
+  <script>
+    // define the dimensions and margins for the graph
+
+    var w = 800;
+    var h = 600;
+    var barPadding = 4;
+    var padding = 100;
+    var additional = 100;
+
+    // define function to parse time in years format
+    var parseTime = d3.timeParse("%Y");
+
+    // create scales x & y for X and Y axis and set their ranges
+
+    var x = d3.scaleTime().range([padding, w-padding]);
+
+    var y = d3.scaleLinear().range([h - padding, padding]);
+
+
+    // append svg element to the body of the page
+    // set dimensions and position of the svg element
+    var svg = d3.select("body").append("svg")
+              .attr("width", w)
+              .attr("height", h)
+
+
+    // Get the data
+	 var pathToCsv = "/q3.csv";		// path to csv
+
+    d3.dsv(",", pathToCsv, function (d) {
+      return {
+        // format data attributes if required
+        year: parseTime(d.year),
+        runningTotal: parseInt(d.running_total)
+      }
+    }).then(function (data) {
+      console.log(data); // you should see the data in your browser's developer tools console
+
+      /* Create bar plot using data from csv */
+
+      // set the domains of X and Y scales based on data
+      x.domain([
+              d3.min(data, function(d) { return d.year;}),
+              d3.max(data, function(d) { return d.year;})
+      ])
+      y.domain(
+              [0, d3.max(data, function(d) {
+              return d.runningTotal; })])
+
+
+      // Add bars to svg - create new elements based on your data
+      svg.selectAll("rect")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("x", function(d) { return x(d.year);})
+        .attr("y", function(d) { return y(d.runningTotal);})
+        .attr("width", (w/data.length) - barPadding)
+        .attr("height", function(d) { return h - padding - y(d.runningTotal);})
+        .attr("fill", function(d) {
+                return "rgb(10, 200, 200)";});
+
+      // Add the X Axis
+      var xAxis = d3.axisBottom().scale(x).ticks(10);
+      svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(0," + (h - padding) + ")")
+        .call(xAxis);
+
+      // Add the text label for X Axis
+      svg.append("text")
+          .attr("transform",
+                "translate(" + w/2 + " ," + (h - (padding/2)) + ")")
+          .style("text-anchor", "middle")
+          .text("Year");
+
+      // Add the Y Axis
+      var yAxis = d3.axisLeft().scale(y).ticks(6);
+      svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(" + (padding) + ",0)")
+        .call(yAxis);
+      // Add the text label for Y axis
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", padding/4)
+        .attr("x", 0 - (h/2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Running Total");
+
+      //add title
+      svg.append("text")
+            .attr("transform",
+                  "translate(" + w/2 + " ," + (padding) + ")")
+            .style("text-anchor", "middle")
+            .text("Running Total of TMDb Movies by Year");
+
+      svg.append("text")
+            .attr("transform",
+                  "translate(" + (w-(padding)) + " ," + (h - (padding/3)) + ")")
+            .style("text-anchor", "middle")
+            .text("slad8");
+
+
+    }).catch(function (error) {
+      console.log(error);
+    });
+
+
+  </script>
+
+</body>
